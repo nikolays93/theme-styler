@@ -49,7 +49,7 @@ register_activation_hook(__FILE__, function(){
       'scss-auto-compile' => 'on',
       );
 
-    add_option();
+    add_option( COMPILER_OPT, $defaults );
 });
 
 if(is_admin()){
