@@ -3,7 +3,7 @@
 Plugin Name: WordPress компилятор скриптов и стилей
 Plugin URI: https://github.com/nikolays93/wp-compiler
 Description: Компилирует файлы SCSS (в будущем предполагается компилировать JS)
-Version: 1.0b
+Version: 1.1b
 Author: NikolayS93
 Author URI: https://vk.com/nikolays_93
 Author EMAIL: nikolayS93@ya.ru
@@ -76,16 +76,20 @@ if(!isset($options['scss-toolbar']))
 
 if(isset($options['scss-assets-scss'])){
   add_filter( 'SCSS_DIR', 'get_scss_dir', 5 );
-  function get_scss_dir(){
+  function get_scss_dir($val){
     $opt = get_option( COMPILER_OPT );
-    return $opt['scss-assets-scss'];
+    $dir = get_template_directory() . '/' . $opt['scss-assets-scss'];
+
+    return (is_dir($dir)) ? $dir : $val;
   }
 }
 if(isset($options['scss-assets'])){
   add_filter( 'ASSETS_DIR', 'get_assets_dir', 5 );
-  function get_assets_dir(){
+  function get_assets_dir($val){
     $opt = get_option( COMPILER_OPT );
-    return $opt['scss-assets'];
+    $dir = get_template_directory() . '/' . $opt['scss-assets'];
+    
+    return (is_dir($dir)) ? $dir : $val;
   }
 }
 
@@ -111,8 +115,10 @@ function use_scss(){
     return;
   }
   
-  if( isset($options['scss-auto-compile']) || isset($_GET['force_scss']) )
-    return;
+  if( !isset($_GET['force_scss']) ){
+    if( !isset($options['scss-auto-compile']) )
+      return;
+  }
 
   $tpl_dir = get_template_directory();
   /**
@@ -153,7 +159,7 @@ function use_scss(){
   foreach ($exists as $exist) {
     $cache_key = str_replace($tpl_dir, '', $exist);
 
-    if ( !isset($scss_cache[$cache_key]) || $scss_cache[$cache_key] !== filemtime($exist) ){
+    if ( isset($_GET['force_scss']) || !isset($scss_cache[$cache_key]) || $scss_cache[$cache_key] !== filemtime($exist) ){
       if( $compiler_loaded === false ){
         $scss = new scssc();
         $scss->setImportPaths(function($path) {
@@ -201,7 +207,7 @@ function add_scss_menu( $wp_admin_bar ) {
     'id'     => 'force_scss',
     'title'  => 'Принудительная компиляция SCSS',
     'parent' => 'SCSS',
-    'href' => '?force-scss=1',
+    'href' => '?force_scss=1',
   );
   $wp_admin_bar->add_node( $args );
 
@@ -235,15 +241,15 @@ function _render_page(){
       'id' => 'scss-assets',
       'type' => 'text',
       'label' => 'Путь к доп. файлам',
-      'desc' => 'Папка в активной теме предназначенная для дополнительных файлов стилей. (По умолчанию: /assets/)',
-      'default' => '/assets/',
+      'desc' => 'Папка в активной теме предназначенная для дополнительных файлов стилей. (По умолчанию: assets/) - относительно папки с активной темой',
+      'default' => 'assets/',
       ),
     array(
       'id' => 'scss-assets-scss',
       'type' => 'text',
       'label' => 'Путь к файлам SCSS',
-      'desc' => 'Папка в активной теме предназначенная для SCSS файлов. (По умолчанию: /assets/scss/)',
-      'default' => '/assets/scss/',
+      'desc' => 'Папка в активной теме предназначенная для SCSS файлов. (По умолчанию: assets/scss/) - относительно папки с активной темой',
+      'default' => 'assets/scss/',
       ),
     );
     
