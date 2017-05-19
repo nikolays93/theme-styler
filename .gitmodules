@@ -1,6 +1,0 @@
-[submodule "inc/wp-admin-page-render"]
-	path = inc/wp-admin-page-render
-	url = https://github.com/nikolays93/WPAdminPageRender.git
-[submodule "inc/wp-form-render"]
-	path = inc/wp-form-render
-	url = https://github.com/nikolays93/WPFormRender.git

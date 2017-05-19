@@ -1,33 +1,21 @@
 <?php
 /*
-Plugin Name: undefined
-Plugin URI:
-Description: Плагин добавляет новые возможности в WordPress.
-Version: 
+Plugin Name: WordPress компилятор скриптов и стилей
+Plugin URI: https://github.com/nikolays93/wp-compiler
+Description: Компилирует файлы SCSS (в будущем предполагается компилировать JS)
+Version: 1.0b
 Author: NikolayS93
 Author URI: https://vk.com/nikolays_93
+Author EMAIL: nikolayS93@ya.ru
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
-/*  Copyright 2016  NikolayS93  (email: NikolayS93@ya.ru)
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+// TODO: add compile js
 
 if ( ! defined( 'ABSPATH' ) )
   exit; // disable direct access
 
-// todo: add compile js
 if(!function_exists('is_wp_debug')){
   function is_wp_debug(){
     if( WP_DEBUG ){
@@ -56,18 +44,65 @@ define('SCSS_CACHE', 'scss-cache');
 define('SCSS_DEFAULT_DIR', get_template_directory() . '/assets/scss/');
 define('ASSETS_DEFAULT_DIR', get_template_directory() . '/assets/');
 
+register_activation_hook(__FILE__, function(){
+    $defaults = array(
+      'scss-auto-compile' => 'on',
+      );
+
+    add_option();
+});
+
 if(is_admin()){
   require_once COMPILER_PLUG_DIR . '/inc/wp-admin-page-render/class-wp-admin-page-render.php';
   require_once COMPILER_PLUG_DIR . '/inc/wp-form-render/class-wp-form-render.php';
   require_once COMPILER_PLUG_DIR . '/inc/admin-page.php';
+
+  $page = new SCSS_COMPILER\WPAdminPageRender( COMPILER_OPT,
+  array(
+    'parent' => 'options-general.php',
+    'title' => __('Настройки компиляции проекта'),
+    'menu' => __('Компиляция'),
+    ), '_render_page' );
 }
-else {
+if( !is_admin() || isset($_GET['force_scss']) ){
   require_once COMPILER_PLUG_DIR . '/inc/scss.inc.php';
+
+  add_action('wp_enqueue_scripts', 'use_scss', 999 );
 }
 
-//  - scss-cahce
-//  - scss-dir
-//  - scss-auto-compile
+$options = get_option( COMPILER_OPT );
+
+if(!isset($options['scss-toolbar']))
+  add_action( 'admin_bar_menu', 'add_scss_menu', 99 );
+
+if(isset($options['scss-assets-scss'])){
+  add_filter( 'SCSS_DIR', 'get_scss_dir', 5 );
+  function get_scss_dir(){
+    $opt = get_option( COMPILER_OPT );
+    return $opt['scss-assets-scss'];
+  }
+}
+if(isset($options['scss-assets'])){
+  add_filter( 'ASSETS_DIR', 'get_assets_dir', 5 );
+  function get_assets_dir(){
+    $opt = get_option( COMPILER_OPT );
+    return $opt['scss-assets'];
+  }
+}
+
+/**
+ * has_filters:
+ *
+ * scss_allow_role ('administrator') - кому разрешено компилировать
+ * SCSS_DIR (SCSS_DEFAULT_DIR) - папка с доп. файлами .scss
+ * assets_auto_compile (false) - компилировать доп. скрипты\стили
+ * ASSETS_DIR (ASSETS_DEFAULT_DIR) - папка с доп. скриптами\стилями
+ * scss_debug - принудительный сжатый вывод
+ */
+
+/**
+ * Compile
+ */
 function use_scss(){
   $options = get_option( COMPILER_OPT );
 
@@ -88,7 +123,7 @@ function use_scss(){
   $scss_styles = array(
     $tpl_dir . '/style.scss',
     $tpl_dir . '/assets/style.scss',
-    SCSS_DEFAULT_DIR . 'style.scss');
+    apply_filters( 'SCSS_DIR', SCSS_DEFAULT_DIR ) . 'style.scss');
 
   foreach ($scss_styles as $scss_style) {
     if( file_exists($scss_style) ){
@@ -127,7 +162,7 @@ function use_scss(){
             return null;
           return apply_filters( 'SCSS_DIR', SCSS_DEFAULT_DIR ) . $path;
         });
-        if(!is_wp_debug())
+        if( !is_wp_debug() || apply_filters( 'scss_debug', false ) )
           $scss->setFormatter('scss_formatter_compressed');
 
         $compiler_loaded = true;
@@ -151,13 +186,10 @@ function use_scss(){
   if( $scss_cache != $old_cache )
     update_option( SCSS_CACHE, $scss_cache );
 }
-add_action('wp_enqueue_scripts', 'use_scss', 999 );
 
-$options = get_option( COMPILER_OPT );
-
-if(!isset($options['scss-toolbar']))
-  add_action( 'admin_bar_menu', 'add_scss_menu', 99 );
-
+/**
+ * Toolbar
+ */
 function add_scss_menu( $wp_admin_bar ) {
 
   $args = array(
@@ -181,4 +213,47 @@ function add_scss_menu( $wp_admin_bar ) {
     'href' => '/wp-admin/options-general.php?page=advanced-options&tab=scripts',
   );
   $wp_admin_bar->add_node( $args );
+}
+
+/**
+ * Admin Page
+ */
+function _render_page(){
+  $data = array(
+    array(
+      'id' => 'scss-auto-compile',
+      'type' => 'checkbox',
+      'label' => 'Автокомпиляция',
+      'desc' => 'По умолчанию автокомпиляция работает только с style.scss используя кэширование (Не компилируется если файл не изменялся с последней компиляции)',
+      ),
+    array(
+      'id' => 'scss-toolbar',
+      'type' => 'checkbox',
+      'label' => 'Скрыть пункт меню',
+      'desc' => 'Не показывать меню компиляции в верхнем меню WordPress (toolbar\'е)',
+      ),
+    array(
+      'id' => 'scss-assets',
+      'type' => 'text',
+      'label' => 'Путь к доп. файлам',
+      'desc' => 'Папка в активной теме предназначенная для дополнительных файлов стилей. (По умолчанию: /assets/)',
+      'default' => '/assets/',
+      ),
+    array(
+      'id' => 'scss-assets-scss',
+      'type' => 'text',
+      'label' => 'Путь к файлам SCSS',
+      'desc' => 'Папка в активной теме предназначенная для SCSS файлов. (По умолчанию: /assets/scss/)',
+      'default' => '/assets/scss/',
+      ),
+    );
+    
+
+  WPForm::render( apply_filters( 'SCSS_COMPILER\dt_admin_options', $data ),
+    WPForm::active(COMPILER_OPT, false, true),
+    true,
+    array('clear_value' => false)
+    );
+
+  submit_button();
 }
