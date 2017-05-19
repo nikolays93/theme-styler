@@ -53,9 +53,8 @@ register_activation_hook(__FILE__, function(){
 });
 
 if(is_admin()){
-  require_once COMPILER_PLUG_DIR . '/inc/wp-admin-page-render/class-wp-admin-page-render.php';
-  require_once COMPILER_PLUG_DIR . '/inc/wp-form-render/class-wp-form-render.php';
-  require_once COMPILER_PLUG_DIR . '/inc/admin-page.php';
+  require_once COMPILER_PLUG_DIR . '/inc/class-wp-admin-page-render.php';
+  require_once COMPILER_PLUG_DIR . '/inc/class-wp-form-render.php';
 
   $page = new SCSS_COMPILER\WPAdminPageRender( COMPILER_OPT,
   array(
@@ -249,8 +248,8 @@ function _render_page(){
     );
     
 
-  WPForm::render( apply_filters( 'SCSS_COMPILER\dt_admin_options', $data ),
-    WPForm::active(COMPILER_OPT, false, true),
+  SCSS_COMPILER\WPForm::render( apply_filters( 'SCSS_COMPILER\dt_admin_options', $data ),
+    SCSS_COMPILER\WPForm::active(COMPILER_OPT, false, true),
     true,
     array('clear_value' => false)
     );
