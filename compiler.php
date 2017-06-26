@@ -108,6 +108,26 @@ if(isset($options['scss-assets'])){
  */
 function use_scss(){
   $options = get_option( COMPILER_OPT );
+  $old_cache = $scss_cache = get_option( SCSS_CACHE );
+
+  /**
+   * Attach SCSS
+   */
+  if( $options['attach_scss'] ){
+    if( is_array($scss_cache) ){
+      $css_urls = array_keys($scss_cache);
+      foreach ($css_urls as $css_url) {
+        $ass_fld = ( isset($options['scss-assets-scss']) ) ? $options['scss-assets-scss'] : 'assets/scss/';
+        $flr = ( isset($options['scss-assets']) ) ? $options['scss-assets'] : 'assets/';
+
+        if($css_url != '/style.scss'){
+          $css_url = str_replace( array($ass_fld, 'scss'), array($flr, 'css'), $css_url);
+
+          wp_enqueue_style( basename($css_url, '.css'), get_template_directory_uri() . $css_url );
+        }
+      }
+    }
+  }
 
   if( !current_user_can( apply_filters( 'scss_allow_role', 'administrator' ) ) ){
     if( isset($_GET['force_scss']) )
@@ -153,9 +173,10 @@ function use_scss(){
   
   /**
    * Compile SCSS
+   * 
+   * @todo : style.min.css
    */
   $compiler_loaded = false;
-  $old_cache = $scss_cache = get_option( SCSS_CACHE );
   foreach ($exists as $exist) {
     $cache_key = str_replace($tpl_dir, '', $exist);
 
@@ -196,7 +217,6 @@ function use_scss(){
  * Toolbar
  */
 function add_scss_menu( $wp_admin_bar ) {
-
   $args = array(
     'id'    => 'SCSS',
     'title' => 'SCSS',
@@ -205,7 +225,7 @@ function add_scss_menu( $wp_admin_bar ) {
 
   $args = array(
     'id'     => 'force_scss',
-    'title'  => 'Принудительная компиляция SCSS',
+    'title'  => 'Компилировать SCSS',
     'parent' => 'SCSS',
     'href' => '?force_scss=1',
   );
@@ -213,7 +233,7 @@ function add_scss_menu( $wp_admin_bar ) {
 
   $args = array(
     'id'     => 'change_scss_dir',
-    'title'  => 'Изменить папку style.scss',
+    'title'  => 'Настройки компилирования SCSS',
     'parent' => 'SCSS',
     'href' => '/wp-admin/options-general.php?page=advanced-options&tab=scripts',
   );
@@ -250,6 +270,12 @@ function _render_page(){
       'label' => 'Путь к файлам SCSS',
       'desc' => 'Папка в активной теме предназначенная для SCSS файлов. (По умолчанию: assets/scss/) - относительно папки с активной темой',
       'default' => 'assets/scss/',
+      ),
+    array(
+      'id' => 'attach_scss',
+      'type' => 'checkbox',
+      'label' => 'Подключить найденые SCSS',
+      'desc' => 'Подключить найденые вышеупомянутые scss файлы',
       ),
     );
     
