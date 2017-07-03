@@ -64,7 +64,8 @@ if(is_admin()){
     ), '_render_page' );
 }
 if( !is_admin() || isset($_GET['force_scss']) ){
-  require_once COMPILER_PLUG_DIR . '/inc/scss.inc.php';
+  if( ! class_exists('scssc') )
+    require_once COMPILER_PLUG_DIR . '/inc/scss.inc.php';
 
   add_action('wp_enqueue_scripts', 'use_scss', 999 );
 }
@@ -113,7 +114,7 @@ function use_scss(){
   /**
    * Attach SCSS
    */
-  if( $options['attach_scss'] ){
+  if( isset($options['attach_scss']) ){
     if( is_array($scss_cache) ){
       $css_urls = array_keys($scss_cache);
       foreach ($css_urls as $css_url) {
@@ -225,7 +226,7 @@ function add_scss_menu( $wp_admin_bar ) {
 
   $args = array(
     'id'     => 'force_scss',
-    'title'  => 'Компилировать SCSS',
+    'title'  => 'Обновить кэш SCSS',
     'parent' => 'SCSS',
     'href' => '?force_scss=1',
   );
