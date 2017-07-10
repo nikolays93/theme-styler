@@ -162,10 +162,11 @@ function use_scss(){
    * Find Assets Files
    */
   if( isset($_GET['force_scss']) || apply_filters('assets_auto_compile', false ) ){
-    $handle = opendir(apply_filters( 'SCSS_DIR', SCSS_DEFAULT_DIR ));
-    while (false !== ($file = readdir( $handle ))){
-      if( strpos($file, '.scss') && substr($file, 0, 1) !== '_' ) 
-        $exists[] = apply_filters( 'SCSS_DIR', SCSS_DEFAULT_DIR ) . $file;
+    if( $handle = @opendir(apply_filters( 'SCSS_DIR', SCSS_DEFAULT_DIR )) ){
+      while (false !== ($file = readdir( $handle ))){
+        if( strpos($file, '.scss') && substr($file, 0, 1) !== '_' ) 
+          $exists[] = apply_filters( 'SCSS_DIR', SCSS_DEFAULT_DIR ) . $file;
+      }
     }
   }
 
