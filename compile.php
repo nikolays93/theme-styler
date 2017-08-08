@@ -59,7 +59,8 @@ class StyleCompiler {
     self::$settings = get_option( self::SETTINGS, array() );
     self::$scss_cache = get_option( self::CACHE, array() );
 
-    add_action('wp_enqueue_scripts', array($this, 'find_and_compile'), 999 );
+    add_action('init', array($this, 'find_and_compile'));
+    add_action('wp_enqueue_scripts', array($this, 'enqueue_compiled_styles'), 999 );
 
     if(empty(self::$settings['disable-nodes']))
       add_action( 'admin_bar_menu', array($this, 'add_scss_menu'), 99 );
@@ -132,11 +133,8 @@ class StyleCompiler {
     return array();
   }
 
-  function find_assets_scss(){
+  function find_assets_scss($is_admin_update){
     $assets = array();
-
-    $cuser = wp_get_current_user();
-    $is_admin_update = !empty($_GET['update_scss']) && !empty($cuser->caps['administrator']);
     if( $is_admin_update || !empty(self::$settings['assets-compile']) ){
       // Ищем доп. файлы
       if( $handle = @opendir(self::$dir . apply_filters( 'SCSS_DIR', self::SCSS_DEFAULT_DIR )) ){
@@ -178,8 +176,7 @@ class StyleCompiler {
       if(!empty(self::$settings['disable-style-compile']) && self::$style_path == $path)
         continue;
 
-      $need_compile =  !empty($_GET['update_scss']) ||
-        ! isset(self::$scss_cache[$path]) ||
+      $need_compile = ! isset(self::$scss_cache[$path]) ||
         self::$scss_cache[$path] !== filemtime(self::$dir . $path);
 
       if ( $need_compile ){
@@ -258,12 +255,18 @@ class StyleCompiler {
     if( ! self::is_allow_compile() )
       return;
 
-    $finded = array_merge( $this->find_style_scss(), $this->find_assets_scss() );
+    $cuser = wp_get_current_user();
+    $is_admin_update = !empty($_GET['update_scss']) && !empty($cuser->caps['administrator']);
+    if( $is_admin_update )
+      self::$scss_cache = array();
+
+    $finded = array_merge( $this->find_assets_scss($is_admin_update), $this->find_style_scss() );
     $this->compile_scss($finded);
-    $this->enqueue_compiled_styles();
-    // echo "<pre>";
-    // var_dump($exists);
-    // echo "</pre>";
+
+    if( $is_admin_update ){
+      if( wp_redirect( get_home_url() ) )
+        exit;
+    }
   }
 
   function add_scss_menu( $wp_admin_bar ) {
