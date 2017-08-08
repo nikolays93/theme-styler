@@ -178,7 +178,10 @@ class StyleCompiler {
       if(!empty(self::$settings['disable-style-compile']) && self::$style_path == $path)
         continue;
 
-      $need_compile =  ! isset(self::$scss_cache[$path]) || self::$scss_cache[$path] !== filemtime(self::$dir . $path);
+      $need_compile =  !empty($_GET['update_scss']) ||
+        ! isset(self::$scss_cache[$path]) ||
+        self::$scss_cache[$path] !== filemtime(self::$dir . $path);
+
       if ( $need_compile ){
         $uncompilde = self::remove_cyrillic(file_get_contents(self::$dir . $path));
         if( $compiled = self::scss_class_instance()->compile( $uncompilde ) ){
