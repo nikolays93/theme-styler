@@ -2,7 +2,7 @@
 /*
 Plugin Name: WordPress Theme Compiler
 Plugin URI: https://github.com/nikolays93/wp-compiler
-Description: Компилирует файлы SCSS (в будущем предполагается компилировать JS)
+Description: Компилирует файлы SCSS
 Version: 1.3 beta
 Author: NikolayS93
 Author URI: https://vk.com/nikolays_93
@@ -61,12 +61,11 @@ class StyleCompiler {
 
     add_action('wp_enqueue_scripts', array($this, 'find_and_compile'), 999 );
 
-    if( ! is_admin() ){
-      if(empty(self::$settings['disable-nodes']))
-        add_action( 'admin_bar_menu', array($this, 'add_scss_menu'), 99 );
+    if(empty(self::$settings['disable-nodes']))
+      add_action( 'admin_bar_menu', array($this, 'add_scss_menu'), 99 );
 
+    if( ! is_admin() )
       return;
-    }
 
     $page = new WPAdminPageRender(
       self::SETTINGS,
@@ -297,12 +296,6 @@ class StyleCompiler {
         'desc' => 'Подключить заранее скомпилированный файл style.css',
         ),
       array(
-        'id' => 'assets-compile',
-        'type' => 'checkbox',
-        'label' => 'Проверять изменения стилей',
-        'desc' => 'Проверять изменения в доп. файлах (На время разработки шаблона)',
-        ),
-      array(
         'id' => 'enqueue-assets-style',
         'type' => 'checkbox',
         'label' => 'Подключить доп. стили',
@@ -342,6 +335,12 @@ class StyleCompiler {
         'label' => 'Путь к файлам SCSS',
         'desc' => 'Папка в активной теме предназначенная для SCSS файлов. (По умолчанию: assets/scss/) - относительно папки с активной темой',
         'default' => 'assets/scss/',
+        ),
+      array(
+        'id' => 'assets-compile',
+        'type' => 'checkbox',
+        'label' => 'Проверять изменения стилей',
+        'desc' => 'Проверять изменения в доп. файлах (На время разработки шаблона)',
         ),
       array(
         'id' => 'disable-style-compile',
