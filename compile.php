@@ -393,7 +393,7 @@ class StyleCompiler {
       'Lobster'   =>  'Lobster',
       );
 
-    $active = array('theme-fonts_' => self::$settings['theme-fonts'] );
+    $active = array('theme-fonts_' => isset(self::$settings['theme-fonts']) ? self::$settings['theme-fonts'] : '' );
     // var_dump($active);
     WPForm::render(
       array(
