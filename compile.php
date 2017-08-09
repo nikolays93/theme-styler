@@ -68,20 +68,7 @@ class StyleCompiler {
     if( ! is_admin() )
       return;
 
-    $page = new WPAdminPageRender(
-      self::SETTINGS,
-      array(
-        'parent' => 'options-general.php',
-        'title' => __('Настройки стилей'),
-        'menu' => __('Настройки стилей'),
-        // 'tab_sections' => array('tab1' => 'title1', 'tab2' => 'title2')
-        ),
-      array($this, 'admin_settings_page')
-      // array(
-      //   'tab1' => array($this, 'admin_settings_page'),
-      //   'tab2' => array($this, 'admin_settings_page_tab2'),
-      //   )
-      );
+    $this->set_admin_page();
   }
 
   private static function load_classes(){
@@ -227,6 +214,12 @@ class StyleCompiler {
         wp_enqueue_style( basename($path, '.css'), get_template_directory_uri() . '/' . $path, false, $ver );
       }
     }
+
+    $fonst_list = include SCSS_DIR . '/inc/fonts.php';
+    foreach (get_theme_mod( 'theme-fonts', array() ) as $font_handle => $font_name) {
+      $font = $fonst_list[$font_name];
+      wp_enqueue_style( $font_handle, $font['url'] );
+    }
   }
 
   static function is_allow_compile(){
@@ -269,6 +262,24 @@ class StyleCompiler {
     }
   }
 
+  /*********************************** Admin Functions **********************************/
+  function set_admin_page(){
+    $page = new WPAdminPageRender(
+      self::SETTINGS,
+      array(
+        'parent' => 'options-general.php',
+        'title' => __('Настройки стилей'),
+        'menu' => __('Настройки стилей'),
+        'tab_sections' => array('tab1' => 'Шрифты', 'tab2' => 'Компиляция')
+        ),
+      array(
+        'tab1' => array($this, 'admin_settings_page_fonts'),
+        'tab2' => array($this, 'admin_settings_page_compile'),
+        ),
+      self::SETTINGS,
+      array($this, 'admin_settings_validate')
+      );
+  }
   function add_scss_menu( $wp_admin_bar ) {
     $args = array(
       'id'    => 'SCSS',
@@ -293,7 +304,7 @@ class StyleCompiler {
     $wp_admin_bar->add_node( $args );
   }
 
-  function admin_settings_page(){
+  function admin_settings_page_compile(){
     $data = array(
       array(
         'id' => 'enqueue-compiled-style',
@@ -363,11 +374,60 @@ class StyleCompiler {
     submit_button();
   }
 
-  // function admin_settings_page_tab2(){
-  //   echo "Page 2";
+  function admin_settings_page_fonts(){
+    $fonts = array(
+      // '' => 'Использовать шрифт ОС',
+      'OpenSans'  => 'Open Sans',
+      // 'Arial'     => 'Arial',
+      // 'Courier'   => 'Courier New',
+      'Roboto'  => 'Roboto',
+      'RobotoSlab'  => 'Roboto Slab',
+      'PTSerif' =>  'PT Serif',
+      'PTSans'  => 'PT Sans',
+      'PTMono'  => 'PT Mono',
+      'Cuprum'  => 'Cuprum',
+      // 'Tahoma'  => 'Tahoma',
+      // 'Verdana' => 'Verdana',
+      'Ubuntu' => 'Ubuntu',
+      'Garamond' => 'Garamond',
+      'Lobster'   =>  'Lobster',
+      );
 
-  //   submit_button( __('Save') );
-  // }
+    $active = array('theme-fonts_' => self::$settings['theme-fonts'] );
+    // var_dump($active);
+    WPForm::render(
+      array(
+        'id' => 'theme-fonts][',
+        'type' => 'select',
+        'label' => 'Подключить внешние шрифты',
+        'options' => $fonts,
+        'multiple' => 'multiple',
+        'size' => '10',
+        ),
+      $active,
+      true,
+      array('admin_page' => self::SETTINGS)
+      );
+
+    submit_button();
+  }
+
+  function admin_settings_validate( $inputs ){
+    // $debug = array();
+    // $debug['before'] = $inputs;
+
+    // default_filters
+    $inputs = array_map_recursive( 'sanitize_text_field', $inputs );
+    $inputs = array_filter_recursive($inputs);
+
+    if( isset($inputs['theme-fonts']) )
+      set_theme_mod( 'theme-fonts', $inputs['theme-fonts'] );
+
+    // $debug['after'] = $inputs;
+    // file_put_contents(__DIR__.'/valid.log', print_r($debug, 1));
+
+    return $inputs;
+  }
 }
 
 add_action( 'plugins_loaded', array('SCSS\StyleCompiler', 'get_instance') );

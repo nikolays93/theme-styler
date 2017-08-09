@@ -442,7 +442,8 @@ class WPForm {
     }
     $result .= ">";
     foreach ($options as $value => $option) {
-      $active_str = ($active_id == $value) ? " selected": "";
+      $in_array = is_array($active_id) && in_array($value, $active_id);
+      $active_str = ( $in_array || $active_id == $value) ? " selected": "";
       if( !is_array($option) ){
         $result .= "<option value='{$value}'{$active_str}>{$option}</option>";
       }
