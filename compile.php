@@ -216,10 +216,14 @@ class StyleCompiler {
     }
 
     $fonst_list = include SCSS_DIR . '/inc/fonts.php';
-    foreach (get_theme_mod( 'theme-fonts', array() ) as $font_handle => $font_name) {
-      $font = $fonst_list[$font_name];
-      wp_enqueue_style( $font_handle, $font['url'] );
+    $ffaces = array();
+    foreach (get_theme_mod( 'theme-fonts', array() ) as $font_name) {
+      $ffaces[] = $fonst_list[$font_name]['font-face'];
     }
+    wp_enqueue_style(
+      'google_fonts',
+      'https://fonts.googleapis.com/css?family='.implode('|', $ffaces).':400,700&subset=cyrillic'
+      );
   }
 
   static function is_allow_compile(){
@@ -384,6 +388,7 @@ class StyleCompiler {
       'RobotoSlab'  => 'Roboto Slab',
       'PTSerif' =>  'PT Serif',
       'PTSans'  => 'PT Sans',
+      'PTSansNarrow' => 'PT Sans Narrow',
       'PTMono'  => 'PT Mono',
       'Cuprum'  => 'Cuprum',
       // 'Tahoma'  => 'Tahoma',
