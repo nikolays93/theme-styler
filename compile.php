@@ -422,6 +422,8 @@ class StyleCompiler {
 
     if( isset($inputs['theme-fonts']) )
       set_theme_mod( 'theme-fonts', $inputs['theme-fonts'] );
+    else
+      remove_theme_mod( 'theme-fonts' );
 
     // $debug['after'] = $inputs;
     // file_put_contents(__DIR__.'/valid.log', print_r($debug, 1));
