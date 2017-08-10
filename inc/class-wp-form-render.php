@@ -102,12 +102,16 @@ class WPForm {
         return false;
 
     /** sanitize admin values */
-    if( $is_admin_options === true ){
+    if( $is_admin_options ){
       $result = array();
       foreach ($active as $key => $value) {
         if( is_array($value) ){
           foreach ($value as $key2 => $value2) {
-            $result[$key . '_' . $key2] = $value2;
+            if( is_array($value2) ){
+              foreach ($value2 as $key3 => $value3) {
+                $result[$key . '_' . $key2 . '_' . $key3] = $value3;
+              }
+            }
           }
         }
         else {
