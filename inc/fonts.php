@@ -73,6 +73,7 @@ class Fonts extends ThemeCompiler {
       true,
       array('admin_page' => parent::SETTINGS)
       );
+    /*
     WPForm::render(
       array(
         array(
@@ -108,6 +109,7 @@ class Fonts extends ThemeCompiler {
       true,
       array('admin_page' => parent::SETTINGS)
       );
+      */
 
     submit_button();
   }
