@@ -116,6 +116,10 @@ class ThemeCompiler {
   }
 
   function add_scss_menu( $wp_admin_bar ) {
+    if( ! current_user_can( 'edit_pages' ) ) {
+      return;
+    }
+
     $args = array(
       'id'    => 'SCSS',
       'title' => 'SCSS',
