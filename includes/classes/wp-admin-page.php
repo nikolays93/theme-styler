@@ -1,104 +1,72 @@
 <?php
-namespace SCSS;
+
+namespace CDevelopers\compile;
+
+if ( ! defined( 'ABSPATH' ) )
+  exit; // disable direct access
+
 /**
- * Class Name: WPAdminPageRender
- * Class URI: https://github.com/nikolays93/classes.git
+ * Class Name: WP_Admin_Page
+ * Class URI: https://github.com/nikolays93/WPAdminPage
  * Description: Create a new custom admin page.
- * Version: 2.0
+ * Version: 2.2
  * Author: NikolayS93
  * Author URI: https://vk.com/nikolays_93
  * License: GNU General Public License v2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
+ *
+ * @todo  : add method for tab_sections ( add tab section )
  */
 
-if ( !function_exists('array_filter_recursive') ) {
-	function array_filter_recursive($input){
-		foreach ($input as &$value) {
-			if ( is_array($value) )
-				$value = array_filter_recursive($value);
-		}
-
-		return array_filter($input);
-	}
-}
-
-if ( !function_exists('array_map_recursive') ) {
-	function array_map_recursive($callback, $array){
-		$func = function ($item) use (&$func, &$callback) {
-			return is_array($item) ? array_map($func, $item) : call_user_func($callback, $item);
-		};
-
-		return array_map($func, $array);
-	}
-}
-
-if( class_exists('WPAdminPageRender') )
-	return;
-
-class WPAdminPageRender
+class WP_Admin_Page
 {
-	const ver = '2.0';
-
 	public $page = '';
 	public $screen = '';
-	public $option_name = '';
-	public $tab_sections = array();
 
-	protected $args = array(
-		'parent'      => 'options-general.php',
-		'title'       => '',
-		'menu'        => 'Test page',
-		'permissions' => 'manage_options',
-		'tab_sections'=> null,
-		);
-	protected $page_content_cb = '';
-	protected $page_valid_cb = '';
-
+	protected $args;
 	protected $metaboxes = array();
+	protected $tab_sections = array();
 
-	function __construct( $page_slug, $args, $page_content_cb, $option_name = false, $valid_cb = false ){
-		// slug required
-		if( !$page_slug )
-			wp_die( 'You have false slug in admin page class', 'Slug is false or empty' );
-
+	function __construct( $page_slug = false )
+	{
 		$this->page = $page_slug;
-		if( is_array( $args ) )
-			$this->args = array_merge( $this->args, $args );
+	}
 
-		if(!empty($this->args['tab_sections']))
-			$this->tab_sections = $this->args['tab_sections'];
+	public function set_args( $deprecated, $args = array() )
+	{
+		if( $this->page ) {
+			$args = $deprecated;
+		}
+		else {
+			$this->page = $deprecated;
+		}
 
-		$this->page_content_cb = $page_content_cb;
-		$this->option_name = ( $option_name ) ? $option_name : $this->page;
-		$this->page_valid_cb = ($valid_cb) ? $valid_cb : array($this, 'validate_options');
+		// slug required
+		if( ! $this->page ){
+			wp_die( 'You have false slug in admin page class in ' . __FILE__, 'Slug is false or empty' );
+		}
 
-		add_action('admin_menu', array($this,'add_page'));
+		$this->args = wp_parse_args( $args, array(
+			'parent'      => 'options-general.php',
+			'title'       => '',
+			'menu'        => 'New Page',
+			'menu_pos'    => 50,
+			'callback'    => array($this, 'not_set_callback'),
+			'validate'    => array($this, 'validate_options'),
+			'permissions' => 'manage_options',
+			'tab_sections'=> null,
+			'columns'     => 1,
+			'icon_url'    => '',
+			) );
+
+		add_action('admin_menu', array($this,'_add_page'));
 		add_action('admin_init', array($this,'register_option_page'));
 	}
 
-	/**
-	 * Add page wordpress handle
-	 *
-	 * @see wordpress codex : add_submenu_page()
-	 */
-	function add_page(){
-		$this->screen = add_submenu_page(
-			$this->args['parent'],
-			$this->args['title'],
-			$this->args['menu'],
-			$this->args['permissions'],
-			$this->page,
-			array($this,'render_page'), 10);
-
-		add_action('load-'.$this->screen, array($this,'page_actions'),9);
-		add_action('admin_footer-'.$this->screen, array($this,'footer_scripts'));
-	}
-
-	function _metabox(){
-		foreach ($this->metaboxes as $metabox) {
-			extract($metabox);
-
-			add_meta_box( $handle, $label, $render_cb, $this->screen, $position, $priority);
+	public function set_assets( $callback )
+	{
+		if( isset($_GET['page']) && $_GET['page'] == $this->page ) {
+			add_action( 'admin_enqueue_scripts', $callback );
 		}
 	}
 
@@ -117,9 +85,64 @@ class WPAdminPageRender
 	}
 
 	/**
+	 * Empty callback arg placeholder
+	 * @return die with error if WP_DEBUG
+	 */
+	function not_set_callback()
+	{
+		if( WP_DEBUG ) {
+			wp_die( "Callback param not defined! @see more https://github.com/nikolays93/WPAdminPage" );
+		}
+	}
+
+	/**
+	 * Add page wordpress handle
+	 *
+	 * @see wordpress codex : add_submenu_page()
+	 */
+	function _add_page()
+	{
+		if( $this->args['parent'] ) {
+			$this->screen = add_submenu_page(
+				$this->args['parent'],
+				$this->args['title'],
+				$this->args['menu'],
+				$this->args['permissions'],
+				$this->page,
+				array($this,'render_page'),
+				$this->args['menu_pos']
+				);
+		}
+		else {
+			$this->screen = add_menu_page(
+				$this->args['title'],
+				$this->args['menu'],
+				$this->args['permissions'],
+				$this->page,
+				array($this,'render_page'),
+				$this->args['icon_url'],
+				$this->args['menu_pos']
+				);
+		}
+
+		add_action('load-'.$this->screen, array($this,'page_actions'),9);
+		add_action('admin_footer-'.$this->screen, array($this,'footer_scripts'));
+	}
+
+	function _metabox()
+	{
+		if( ! $this->screen ) return;
+
+		foreach ($this->metaboxes as $m) {
+			add_meta_box( $m['handle'], $m['label'], $m['render_cb'], $this->screen, $m['position'], $m['priority']);
+		}
+	}
+
+	/**
 	 * Init actions for created page
 	 */
-	function page_actions(){
+	function page_actions()
+	{
 		add_action( $this->page . '_inside_page_content', array($this, 'page_render'), 10);
 
 		add_action( $this->page . '_inside_side_container', array($this, 'side_render'), 10 );
@@ -130,53 +153,97 @@ class WPAdminPageRender
 		do_action('add_meta_boxes_'.$this->screen, null);
 		do_action('add_meta_boxes', $this->screen, null);
 
-		$columns = apply_filters( $this->page . '_columns', 1 );
-		add_screen_option('layout_columns', array('max' => $columns, 'default' => $columns) );
+		add_screen_option('layout_columns', array(
+			'max' => $this->args['columns'],
+			'default' => $this->args['columns'])
+		);
 
 		// Enqueue WordPress' script for handling the metaboxes
 		wp_enqueue_script('postbox');
 	}
 
-	function page_render(){
-		/** @ Experemental ! (tabs) */
-		if( is_array($this->page_content_cb) && !empty($this->args['tab_sections']) ){
-			if (!empty($_GET['tab'])){
-				$current = $_GET['tab'];
-			}
-			else {
-				reset($this->tab_sections);
-				$current = key($this->tab_sections);
-			}
-
-			echo '<style>#tabs.navs {padding-bottom: 0;margin: 0 0 8px;}</style><h2 id="tabs" class="navs nav-tab-wrapper">';
-			foreach ( $this->tab_sections as $tab => $tab_title) {
-				$class = ( $tab == $current ) ? ' nav-tab-active' : '';
-				echo "<a class='nav-tab{$class}' href='?page=".$this->page."&tab={$tab}' data-tab='{$tab}'>$tab_title</a>";
-			}
-			echo '</h2>';
-
-			foreach ($this->page_content_cb as $tab => $render_cb) {
-				$class = ($tab == $current) ? '' : ' class="hidden"';
-				echo "<div id='{$tab}'{$class}>";
-				call_user_func($render_cb);
-				echo "</div>";
-			}
+	private static function tabs_render($sections, $callbacks)
+	{
+		if ( ! empty( $_GET['tab'] ) ) {
+			$current = sanitize_text_field( $_GET['tab'] );
 		}
 		else {
-			call_user_func($this->page_content_cb);
+			reset( $callbacks );
+			$current = key( $callbacks );
+		}
+
+		echo '<style>#tabs.navs {padding-bottom: 0;margin: 0 0 8px;}</style>';
+		echo '<h2 id="tabs" class="navs nav-tab-wrapper">';
+
+		$host = (isset($_SERVER['HTTPS']) ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
+		foreach ($sections as $tab_section) {
+			if( is_array($tab_section) ) {
+				$section_key = key($tab_section);
+				$section_value = current($tab_section);
+			}
+			else {
+				$section_key = key( $callbacks );
+				$section_value = $tab_section;
+				next( $callbacks );
+			}
+
+			$get = array();
+			foreach ($_GET as $key => $value) {
+				if( $key !== 'tab' ) {
+					$get[] = $key . '=' . $value;
+				}
+			}
+			$get[] = 'tab=' . $section_key;
+
+			$href = $host . '?' . implode('&', $get);
+			$class = $section_key == $current ? 'nav-tab nav-tab-active' : 'nav-tab';
+
+			echo sprintf('<a href="%s" class="%s" data-tab="%s">%s</a>',
+				esc_url( $href ),
+				$class,
+				esc_attr( $section_key ),
+				esc_html( $section_value )
+				);
+		}
+		echo '</h2>';
+
+		foreach ($callbacks as $tab => $render_cb) {
+			echo sprintf('<div id="%s" class="%s">',
+				esc_attr( $tab ),
+				$tab !== $current ? 'hidden' : ''
+				);
+			call_user_func($render_cb);
+			echo "</div>";
 		}
 	}
-	function side_render(){
+
+	function page_render()
+	{
+		if( is_array($this->args['callback']) && !empty($this->args['tab_sections']) ){
+			self::tabs_render($this->args['tab_sections'], $this->args['callback']);
+		}
+		else {
+			call_user_func($this->args['callback']);
+		}
+	}
+
+	function side_render()
+	{
 		do_meta_boxes($this->screen,'side',null);
 	}
-	function normal_render(){
+
+	function normal_render()
+	{
 		do_meta_boxes($this->screen,'normal',null);
 	}
-	function advanced_render(){
+
+	function advanced_render()
+	{
 		do_meta_boxes($this->screen,'advanced',null);
 	}
 
-	function footer_scripts(){
+	function footer_scripts()
+	{
 
 		echo "<script> jQuery(document).ready(function($){ postboxes.add_postbox_toggles(pagenow); });</script>";
 		if( !empty($this->args['tab_sections']) ):
@@ -221,7 +288,8 @@ class WPAdminPageRender
 	 * $pageslug . _form_action
 	 * $pageslug . _form_method
 	 */
-	function render_page(){
+	function render_page()
+	{
 		?>
 
 		<div class="wrap">
@@ -248,7 +316,7 @@ class WPAdminPageRender
 							/**
 							 * $page_slug . _inside_page_content hook.
 							 *
-							 * @hooked array('WPAdminPageRender', 'page_render') - 10
+							 * @hooked array('WPAdminPage', 'page_render') - 10
 							 */
 							do_action( $this->page . '_inside_page_content');
 							?>
@@ -259,7 +327,7 @@ class WPAdminPageRender
 							/**
 							 * $page_slug . _inside_side_container hook.
 							 *
-							 * @hooked array('WPAdminPageRender', 'side_render') - 10
+							 * @hooked array('WPAdminPage', 'side_render') - 10
 							 */
 							do_action( $this->page . '_inside_side_container');
 							?>
@@ -270,7 +338,7 @@ class WPAdminPageRender
 							/**
 							 * $page_slug . _inside_normal_container hook.
 							 *
-							 * @hooked array('WPAdminPageRender', 'normal_render') - 10
+							 * @hooked array('WPAdminPage', 'normal_render') - 10
 							 */
 							do_action( $this->page . '_inside_normal_container');
 							?>
@@ -280,7 +348,7 @@ class WPAdminPageRender
 							/**
 							 * $page_slug . _inside_advanced_container hook.
 							 *
-							 * @hooked array('WPAdminPageRender', 'advanced_render') - 10
+							 * @hooked array('WPAdminPage', 'advanced_render') - 10
 							 */
 							do_action( $this->page . '_inside_advanced_container');
 							?>
@@ -295,7 +363,7 @@ class WPAdminPageRender
 					wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false );
 					// add hidden settings
 					if($action == 'options.php')
-						settings_fields( $this->option_name );
+						settings_fields( $this->page );
 				?>
 
 				<?php do_action( $this->page . '_after_form_inputs'); ?>
@@ -313,26 +381,45 @@ class WPAdminPageRender
 	/**
 	 * Register page settings
 	 */
-	function register_option_page(){
-
-		register_setting( $this->option_name, $this->option_name, $this->page_valid_cb );
+	function register_option_page()
+	{
+		register_setting( $this->page, $this->page, $this->args['validate'] );
 	}
+
 	/**
 	 * Validate registred options
 	 *
 	 * @param  _POST $inputs post data for update
 	 * @return array $inputs filtred data for save
 	 */
-	function validate_options( $inputs ){
+	function validate_options( $inputs )
+	{
 		// $debug = array();
 		// $debug['before'] = $inputs;
-
-		$inputs = array_map_recursive( 'sanitize_text_field', $inputs );
-		$inputs = array_filter_recursive($inputs);
-
+		$inputs = self::array_map_recursive( 'sanitize_text_field', $inputs );
+		$inputs = self::array_filter_recursive($inputs);
 		// $debug['after'] = $inputs;
 		// file_put_contents(__DIR__.'/valid.log', print_r($debug, 1));
 
 		return $inputs;
+	}
+
+	public static function array_filter_recursive($input)
+	{
+		foreach ($input as &$value) {
+			if ( is_array($value) )
+				$value = self::array_filter_recursive($value);
+		}
+
+		return array_filter($input);
+	}
+
+	public static function array_map_recursive($callback, $array)
+	{
+		$func = function ($item) use (&$func, &$callback) {
+			return is_array($item) ? array_map($func, $item) : call_user_func($callback, $item);
+		};
+
+		return array_map($func, $array);
 	}
 }
