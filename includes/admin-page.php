@@ -1,6 +1,6 @@
 <?php
 
-namespace CDevelopers\compile;
+namespace CDevelopers\style;
 
 if ( ! defined( 'ABSPATH' ) )
   exit; // disable direct access
