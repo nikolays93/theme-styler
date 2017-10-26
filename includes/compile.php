@@ -12,13 +12,13 @@ class ThemeCompiler
 {
     const CACHE = '_scss';
 
-    private static $Compile;
+    private static $scssc;
     static $relative;
     static $is_force;
 
     function __construct()
     {
-        self::$is_force = isset( $_GET['update_scss'] );
+        self::$is_force = isset( $_GET[ apply_filters('compile_force_name', 'update_scss' ) ] );
     }
 
     static function admin_notice_styles_updated() {
@@ -29,15 +29,15 @@ class ThemeCompiler
 
     function get_compiler_instance()
     {
-        if( ! $Compile = self::$Compile ) {
-            $Compile = new \scssc();
+        if( ! $scssc = self::$scssc ) {
+            $scssc = new \scssc();
 
             if( ! defined('SCRIPT_DEBUG') || ! SCRIPT_DEBUG ) {
-                $Compile->setFormatter('scss_formatter_compressed');
+                $scssc->setFormatter('scss_formatter_compressed');
             }
         }
 
-        return $Compile;
+        return $scssc;
     }
 
     function is_allow()
@@ -80,11 +80,12 @@ class ThemeCompiler
         // return $paths;
         $result = array();
 
-        $dh = opendir( DIR . '/assets/' );
+        $dir = Utils::get_plugin_dir('assets');
+        $dh = opendir( $dir );
         while ( false !== ($file = readdir($dh)) ) {
             if ($file == '.' || $file == '..') continue;
 
-            $file = realpath( DIR . '/assets/' .basename($file) );
+            $file = realpath( $dir . '/assets/' .basename($file) );
             $info = pathinfo( $file );
 
             if ( isset($info['extension']) && $info['extension'] == 'scss' && substr($info['filename'], 0, 1) !== '_' ) {
