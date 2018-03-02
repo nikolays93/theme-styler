@@ -46,12 +46,6 @@ class AdminSettingsPage
 
         $data = array(
             array(
-                'id'    => 'enqueue',
-                'type'  => 'checkbox',
-                'label' => __('Enqueue style.css'),
-                'desc'  => 'Enqueue style.css?ver={last_filemtime} for update cache',
-            ),
-            array(
                 'id'    => 'check_changes',
                 'type'  => 'select',
                 'label' => __('Check changes', DOMAIN),
@@ -60,6 +54,10 @@ class AdminSettingsPage
                     'always'   => __('Always', DOMAIN),
                     ''         => __('Disable', DOMAIN),
                 ),
+            ),
+            array(
+                'id'    => 'stylemtime',
+                'type'  => 'hidden',
             ),
         );
 

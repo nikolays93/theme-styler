@@ -61,8 +61,8 @@ class Plugin
 
         load_plugin_textdomain( DOMAIN, false, basename(PLUGIN_DIR) . '/languages/' );
         self::include_required_files();
-        self::_actions();
         self::_filters();
+        self::_actions();
 
         self::$initialized = true;
     }
@@ -92,10 +92,35 @@ class Plugin
 
         // includes
         Utils::load_file_if_exists( $include . '/admin-settings-page.php' );
+        Utils::load_file_if_exists( $include . '/theme-compile.php' );
     }
 
-    private static function _actions(){}
-    private static function _filters(){}
+    private static function _filters(){
+        add_filter( 'scss-content-filter', array(__CLASS__, 'exclude_cyr'), 10, 1 );
+    }
+
+    private static function _actions()
+    {
+        add_action( 'wp_enqueue_scripts', array(__CLASS__, 'compile_styles') );
+    }
+
+    static function exclude_cyr( $content )
+    {
+        $cyrilic = "/[\x{0410}-\x{042F}]+.*[\x{0410}-\x{042F}]+/iu";
+        $content = preg_replace( $cyrilic, "", $content );
+
+        return $content;
+    }
+
+    static function compile_styles() {
+        $compile = new ThemeCompile();
+        if( $compile->is_allow() ) {
+            $compile->set_patch( get_template_directory() . '/style.scss' );
+            // $compile->set_patch( Utils::get_plugin_dir('assets') );
+
+            $compile->update();
+        }
+    }
 }
 
 register_activation_hook( __FILE__, array( __NAMESPACE__ . '\Plugin', 'activate' ) );
