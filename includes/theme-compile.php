@@ -46,15 +46,6 @@ class ThemeCompile
      */
     public function is_allow()
     {
-        $stylemtime = filemtime( get_template_directory() . '/style.css' );
-        if( Utils::get('stylemtime') && $stylemtime >= Utils::get('stylemtime') ) {
-            if( $stylemtime > Utils::get('stylemtime') )
-                Utils::write_debug( __('style fixed by the user'), __FILE__ );
-
-            return false;
-        }
-
-
         if( 'always' === Utils::get( 'check_changes' ) ) {
             return true;
         }
@@ -76,7 +67,7 @@ class ThemeCompile
     {
         // Если в $patch сразу передан 1 файл, отправляем его в массив файлов и выходим из рекурсии
         if( is_readable($path) && is_file($path) ) {
-            $this->arrFiles[] = str_replace(ABSPATH, '', $path);
+            $this->arrFiles[ str_replace(get_template_directory(), '', $path) ] = filemtime( $path );
         }
         else {
             $dh = opendir($path);
@@ -87,7 +78,7 @@ class ThemeCompile
                 $info = pathinfo($file);
 
                 if( self::valid_scss_filename( $info ) ) {
-                    $this->arrFiles[] = str_replace(ABSPATH, '', $path);
+                    $this->arrFiles[ str_replace(get_template_directory(), '', $path) ] = filemtime( $path );
                 }
                 elseif( $file != '.' && $file != '..' && is_dir($file) ) {
                     $this->set_patch($file);
@@ -97,18 +88,51 @@ class ThemeCompile
         }
     }
 
+    function is_changed() {
+        $files = Utils::get('stylemtime', false);
+        if( !is_array($files) )
+            return true;
+
+        foreach ($files as $file => $filemtime) {
+            if( $file == '/style.css' ) continue;
+            $filename = get_template_directory() . $file;
+
+            if( !is_file($filename) || $filemtime != filemtime( $filename ) )
+                return true;
+        }
+
+        return false;
+    }
+
     function update()
     {
+        if( ! self::is_changed() )
+            return false;
+
         $scssc = $this->get_scssc_instance();
 
-        foreach ($this->arrFiles as $file ) {
-            $this->scss_content .= file_get_contents( ABSPATH . $file );
+        /**
+         * @todo varname refactoring
+         */
+        $stylefilename = get_template_directory() . '/style.css';
+        $files = Utils::get('stylemtime');
+        if( is_file( $stylefilename ) &&
+            isset($files['/style.css']) &&
+            filemtime( $stylefilename ) > $files['/style.css'] )
+        {
+            Utils::write_debug( __('style fixed by the user'), __FILE__ );
+            return false;
+        }
+
+        foreach ($this->arrFiles as $file => $filemtime) {
+            $this->scss_content .= file_get_contents( get_template_directory() . $file );
         }
 
         $content = apply_filters( 'scss-content-filter', $this->scss_content );
         file_put_contents(get_template_directory() . '/style.css', $scssc->compile($content));
 
-        Utils::set('stylemtime', filemtime(get_template_directory() . '/style.css') );
+        $this->arrFiles[ '/style.css' ] = filemtime( $stylefilename );
+        Utils::set('stylemtime', $this->arrFiles );
     }
 }
 

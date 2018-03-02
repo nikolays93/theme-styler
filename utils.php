@@ -52,6 +52,9 @@ class Utils
         $date = new \DateTime();
         $date_str = $date->format(\DateTime::W3C);
 
+        if( current_user_can('administrator') )
+            print_r("<pre>[{$date_str}] {$msg} ({$path})</pre>");
+
         if( $handle = @fopen($plugin_dir . "/debug.log", "a+") ) {
             fwrite($handle, "[{$date_str}] {$msg} ({$path})\r\n");
             fclose($handle);
