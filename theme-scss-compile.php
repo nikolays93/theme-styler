@@ -31,6 +31,8 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
  *
  * $pageslug . _form_action - Аттрибут action формы на странице настроек плагина
  * $pageslug . _form_method - Аттрибут method формы на странице настроек плагина
+ *
+ * theme-css-style-path - Изменить путь к файлу style.css
  */
 
 namespace CDevelopers\SCSS;
@@ -101,7 +103,8 @@ class Plugin
 
     private static function _actions()
     {
-        add_action( 'wp_enqueue_scripts', array(__CLASS__, 'compile_styles') );
+        add_action( 'wp_enqueue_scripts', array(__CLASS__, 'compile_styles'), 2 );
+        add_action( 'wp_enqueue_scripts', array(__CLASS__, 'enqueue_styles'), 10 );
     }
 
     static function exclude_cyr( $content )
@@ -120,6 +123,16 @@ class Plugin
 
             $compile->update();
         }
+    }
+
+    static function enqueue_styles()
+    {
+        if( !Utils::get('enqueue_styles') )
+            return;
+
+        $_styletime = Utils::get('stylemtime');
+        $styletime = isset($_styletime[ '/style.css' ]) ? $_styletime[ '/style.css' ] : false;
+        wp_enqueue_style( 'compiled-styles', Utils::get_stylesheet_url(), array(), $styletime );
     }
 }
 

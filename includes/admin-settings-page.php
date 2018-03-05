@@ -46,6 +46,11 @@ class AdminSettingsPage
 
         $data = array(
             array(
+                'id'    => 'enqueue_styles',
+                'type'  => 'checkbox',
+                'label' => __('Enqueue comiled styles', DOMAIN),
+            ),
+            array(
                 'id'    => 'check_changes',
                 'type'  => 'select',
                 'label' => __('Check changes', DOMAIN),
@@ -77,7 +82,7 @@ class AdminSettingsPage
                 'desc'  => 'Must have user permissions for check updates',
             );
             $data[] = array(
-                'id'    => 'pwd',
+                'id'    => 'compile-url-password',
                 'type'  => 'text',
                 'label' => __('Use password'),
                 'desc'  => 'Use ?update={password} for update in "Logged in" mode',

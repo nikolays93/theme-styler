@@ -50,13 +50,14 @@ class ThemeCompile
             return true;
         }
 
-        if( current_user_can( apply_filters( 'theme-scss-compile-capability',
-            Utils::get( 'permissions', 'administrator' ) ) ) ) {
+        if( 'loggedin' === Utils::get( 'check_changes' ) ) {
+            if( current_user_can( apply_filters( 'theme-scss-compile-capability',
+                Utils::get( 'permissions', 'administrator' ) ) ) )
             return true;
         }
 
-        $var_update = apply_filters('theme-scss-compile-var-password', 'update' );
-        return !empty( $_GET[ $var_update ] ) && $_GET[ $var_update ] == Utils::get('compile-url-password');
+        $update_key = apply_filters('theme-scss-compile-var-password', 'update' );
+        return !empty( $_GET[ $update_key ] ) && $_GET[ $update_key ] == Utils::get('compile-url-password');
     }
 
     /**
@@ -66,10 +67,14 @@ class ThemeCompile
     public function set_patch($path)
     {
         // Если в $patch сразу передан 1 файл, отправляем его в массив файлов и выходим из рекурсии
-        if( is_readable($path) && is_file($path) ) {
+        if( ! is_readable($path) )
+            return false;
+
+        if( is_file($path) ) {
             $this->arrFiles[ str_replace(get_template_directory(), '', $path) ] = filemtime( $path );
         }
-        else {
+
+        if( is_dir($path) ) {
             $dh = opendir($path);
             while ( false !== ($file = readdir($dh)) ) {
                 if ( in_array($file, ['.', '..']) ) continue;
@@ -114,11 +119,11 @@ class ThemeCompile
         /**
          * @todo varname refactoring
          */
-        $stylefilename = get_template_directory() . '/style.css';
+        $stylesheet_path = Utils::get_stylesheet_path();
         $files = Utils::get('stylemtime');
-        if( is_file( $stylefilename ) &&
+        if( is_file( $stylesheet_path ) &&
             isset($files['/style.css']) &&
-            filemtime( $stylefilename ) > $files['/style.css'] )
+            filemtime( $stylesheet_path ) > $files['/style.css'] )
         {
             Utils::write_debug( __('style fixed by the user'), __FILE__ );
             return false;
@@ -129,9 +134,9 @@ class ThemeCompile
         }
 
         $content = apply_filters( 'scss-content-filter', $this->scss_content );
-        file_put_contents(get_template_directory() . '/style.css', $scssc->compile($content));
+        file_put_contents($stylesheet_path, $scssc->compile($content));
 
-        $this->arrFiles[ '/style.css' ] = filemtime( $stylefilename );
+        $this->arrFiles[ '/style.css' ] = filemtime( $stylesheet_path );
         Utils::set('stylemtime', $this->arrFiles );
     }
 }

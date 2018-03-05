@@ -171,4 +171,14 @@ class Utils
 
         return self::load_file_if_exists( self::get_plugin_dir('settings') . '/' . $filename, $args );
     }
+
+    public static function get_stylesheet_path() {
+
+        return apply_filters('theme-css-style-path', get_template_directory() . '/style.css');
+    }
+
+    public static function get_stylesheet_url() {
+
+        return apply_filters('theme-css-style-url', get_stylesheet_uri());
+    }
 }
