@@ -104,7 +104,7 @@ class Plugin
     private static function _actions()
     {
         add_action( 'wp_enqueue_scripts', array(__CLASS__, 'compile_styles'), 2 );
-        add_action( 'wp_enqueue_scripts', array(__CLASS__, 'enqueue_styles'), 10 );
+        add_action( 'wp_enqueue_scripts', array(__CLASS__, 'enqueue_styles'), 9999 );
     }
 
     static function exclude_cyr( $content )
