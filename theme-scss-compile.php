@@ -118,9 +118,15 @@ class Plugin
     static function compile_styles() {
         $compile = new ThemeCompile();
         if( $compile->is_allow() ) {
-            $compile->set_patch( get_template_directory() . '/style.scss' );
-            // $compile->set_patch( Utils::get_plugin_dir('assets') );
+            $pathes = apply_filters('ThemeCompilePatches', array(
+                get_template_directory() . '/style.scss',
+            ));
 
+            foreach ($pathes as $path) {
+                $compile->set_patch( $path );
+            }
+
+            // $compile->set_patch( Utils::get_plugin_dir('assets') );
             $compile->update();
         }
     }
